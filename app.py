@@ -18,7 +18,7 @@ greetings = [
 if "selected_greeting" not in st.session_state:
     st.session_state.selected_greeting = random.choice(greetings)
 
-st.title("🔍 Nova Search")
+st.title("🔍 Orbit Ai")
 st.markdown(f"### {st.session_state.selected_greeting}")
 
 # Fetch API keys directly from Streamlit Secrets
