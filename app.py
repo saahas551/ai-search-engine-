@@ -12,10 +12,12 @@ st.title("🔍 My AI Search Engine")
 gemini_api_key = st.secrets.get("GEMINI_API_KEY")
 tavily_api_key = st.secrets.get("TAVILY_API_KEY")
 
-# Input field for search query
-query = st.text_input("What would you like to search?")
+# Wrap the input and button in a form so hitting 'Enter' submits it
+with st.form(key="search_form"):
+    query = st.text_input("What would you like to search?")
+    submit_button = st.form_submit_button("Search Web")
 
-if st.button("Search Web"):
+if submit_button:
     if not query:
         st.warning("Please enter a search topic.")
     elif not gemini_api_key or not tavily_api_key:
