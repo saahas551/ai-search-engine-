@@ -21,28 +21,35 @@ if st.button("Search Web"):
     elif not gemini_api_key or not tavily_api_key:
         st.error("API keys are missing from Streamlit Secrets!")
     else:
-        with st.spinner("Searching the web and generating answer..."):
+        with st.spinner("Searching the web..."):
             try:
-                # Initialize clients using stored secrets
+                # 1. Faster Tavily search with max 3 results
                 tavily = TavilyClient(api_key=tavily_api_key)
-                search_result = tavily.search(query=query, search_depth="basic")
+                search_result = tavily.search(query=query, search_depth="fast", max_results=3)
                 
+                # 2. Prepare Gemini prompt
                 gemini_client = genai.Client(api_key=gemini_api_key)
-                
                 prompt = f"""
                 You are a helpful search assistant. Based on these search results:
                 {search_result}
                 
-                Answer the user's question clearly: {query}
+                Answer the user's question clearly and concisely: {query}
                 """
                 
-                response = gemini_client.models.generate_content(
-                    model="gemini-3.6-flash",
-                    contents=prompt
-                )
-                
                 st.subheader("Answer:")
-                st.write(response.text)
+                
+                # Helper function to convert Gemini stream chunks into plain text generator
+                def stream_response():
+                    response = gemini_client.models.generate_content_stream(
+                        model="gemini-3.6-flash",
+                        contents=prompt
+                    )
+                    for chunk in response:
+                        if chunk.text:
+                            yield chunk.text
+
+                # 3. Stream text to screen word-by-word
+                st.write_stream(stream_response)
                 
             except Exception as e:
                 st.error(f"Error: {e}")
