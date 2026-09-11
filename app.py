@@ -6,31 +6,30 @@ from tavily import TavilyClient
 # Browser tab title & icon
 st.set_page_config(page_title="Orbit AI", page_icon="🌐", layout="centered")
 
-# --- CUSTOMER COLOR CUSTOMIZER (Sidebar) ---
-st.sidebar.markdown("### 🎨 Interface Customizer")
-primary_color = st.sidebar.color_picker("Pick Accent Color", "#58a6ff")
-bg_color = st.sidebar.color_picker("Pick Background Color", "#0d1117")
-card_bg = st.sidebar.color_picker("Pick Loader/Card Background", "#161b22")
+# Default Theme Colors (Fixed)
+PRIMARY_COLOR = "#58a6ff"
+BG_COLOR = "#0d1117"
+CARD_BG = "#161b22"
 
+# --- SIDEBAR CONTROL ---
 if st.sidebar.button("🧹 Clear Memory"):
     st.session_state.chat_history = []
-    st.session_state.current_answer = ""
-    st.session_state.current_suggestions = ""
+    st.session_state.search_query = ""
     st.rerun()
 
-# --- DYNAMIC CSS INJECTION BASED ON USER SELECTION ---
+# --- STATIC CSS INJECTION ---
 st.markdown(f"""
 <style>
-    /* User-Defined Background Theme */
+    /* Default Background Theme */
     .stApp {{
-        background-color: {bg_color} !important;
+        background-color: {BG_COLOR} !important;
         color: #e6edf3;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }}
     
-    /* Dynamic Heading Accent */
+    /* Heading Accent */
     h1 {{
-        background: linear-gradient(135deg, {primary_color} 0%, #FF0080 100%);
+        background: linear-gradient(135deg, {PRIMARY_COLOR} 0%, #FF0080 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-weight: 800 !important;
@@ -40,7 +39,7 @@ st.markdown(f"""
 
     /* Subheadings */
     h2, h3, .stMarkdown h3 {{
-        color: {primary_color} !important;
+        color: {PRIMARY_COLOR} !important;
         font-weight: 700 !important;
     }}
 
@@ -48,17 +47,17 @@ st.markdown(f"""
     div[data-baseweb="input"] {{
         border-radius: 12px !important;
         border: 2px solid #30363d !important;
-        background-color: {card_bg} !important;
+        background-color: {CARD_BG} !important;
         transition: all 0.3s ease;
     }}
     div[data-baseweb="input"]:focus-within {{
-        border-color: {primary_color} !important;
-        box-shadow: 0 0 15px {primary_color}44;
+        border-color: {PRIMARY_COLOR} !important;
+        box-shadow: 0 0 15px {PRIMARY_COLOR}44;
     }}
     
     /* Buttons */
     .stButton>button, .stFormSubmitButton>button {{
-        background: linear-gradient(90deg, {primary_color} 0%, #238636 100%) !important;
+        background: linear-gradient(90deg, {PRIMARY_COLOR} 0%, #238636 100%) !important;
         color: #ffffff !important;
         font-weight: 700 !important;
         border-radius: 10px !important;
@@ -69,14 +68,14 @@ st.markdown(f"""
     }}
     .stButton>button:hover, .stFormSubmitButton>button:hover {{
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px {primary_color}66 !important;
+        box-shadow: 0 6px 20px {PRIMARY_COLOR}66 !important;
     }}
 
     /* Glowing Pulse Animation */
     @keyframes orbit-pulse {{
-        0% {{ transform: scale(0.95); box-shadow: 0 0 0 0 {primary_color}aa; }}
-        70% {{ transform: scale(1); box-shadow: 0 0 0 15px {primary_color}00; }}
-        100% {{ transform: scale(0.95); box-shadow: 0 0 0 0 {primary_color}00; }}
+        0% {{ transform: scale(0.95); box-shadow: 0 0 0 0 {PRIMARY_COLOR}aa; }}
+        70% {{ transform: scale(1); box-shadow: 0 0 0 15px {PRIMARY_COLOR}00; }}
+        100% {{ transform: scale(0.95); box-shadow: 0 0 0 0 {PRIMARY_COLOR}00; }}
     }}
     .search-loader {{
         display: flex;
@@ -84,14 +83,14 @@ st.markdown(f"""
         justify-content: center;
         padding: 20px;
         margin: 15px 0;
-        background: {card_bg};
+        background: {CARD_BG};
         border-radius: 12px;
         border: 1px solid #30363d;
     }}
     .pulse-circle {{
         width: 20px;
         height: 20px;
-        background-color: {primary_color};
+        background-color: {PRIMARY_COLOR};
         border-radius: 50%;
         margin-right: 15px;
         animation: orbit-pulse 1.5s infinite;
@@ -138,7 +137,7 @@ with col2:
     if st.button("🎬 Trending movies & shows"):
         set_query("Trending movies & shows")
 
-# Search form (Single-turn view: older responses disappear when a new one is submitted)
+# Search form (Single-turn display: older requests clear out while memory is kept)
 with st.form(key="search_form"):
     query = st.text_input(
         "Ask anything or search the web:", 
@@ -154,7 +153,7 @@ if submit_button and query:
         loading_placeholder.markdown(f"""
             <div class="search-loader">
                 <div class="pulse-circle"></div>
-                <span style="font-weight: 600; font-size: 1.1rem; color: {primary_color};">Orbiting the web for answers...</span>
+                <span style="font-weight: 600; font-size: 1.1rem; color: {PRIMARY_COLOR};">Orbiting the web for answers...</span>
             </div>
         """, unsafe_allow_html=True)
 
@@ -163,10 +162,9 @@ if submit_button and query:
             tavily = TavilyClient(api_key=tavily_api_key)
             search_result = tavily.search(query=query, search_depth="fast", max_results=3)
             
-            # 2. Gemini Setup with memory context
+            # 2. Gemini Setup with memory context using gemini-3.6-flash
             gemini_client = genai.Client(api_key=gemini_api_key)
             
-            # Remember past requests in memory context
             memory_context = "\n".join([f"User: {h['q']}\nAI: {h['a']}" for h in st.session_state.chat_history[-3:]])
             
             prompt = f"""
@@ -189,7 +187,7 @@ if submit_button and query:
             
             def stream_response():
                 response = gemini_client.models.generate_content_stream(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.6-flash",
                     contents=prompt
                 )
                 full_response = ""
@@ -198,7 +196,7 @@ if submit_button and query:
                         full_response += chunk.text
                         yield chunk.text
                 
-                # Save to background memory so it remembers past requests
+                # Save to background memory
                 st.session_state.chat_history.append({"q": query, "a": full_response})
 
             st.write_stream(stream_response)
@@ -214,7 +212,7 @@ if submit_button and query:
             """
             
             suggestions = gemini_client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.6-flash",
                 contents=suggestion_prompt
             )
             st.write(suggestions.text)
