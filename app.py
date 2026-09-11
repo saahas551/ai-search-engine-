@@ -158,9 +158,9 @@ if submit_button and query:
         """, unsafe_allow_html=True)
 
         try:
-            # 1. Tavily Search
+            # 1. Tavily Search (Optimized to ultra-fast for minimal latency)
             tavily = TavilyClient(api_key=tavily_api_key)
-            search_result = tavily.search(query=query, search_depth="fast", max_results=3)
+            search_result = tavily.search(query=query, search_depth="ultra-fast", max_results=3)
             
             # 2. Gemini Setup with memory context using gemini-3.6-flash
             gemini_client = genai.Client(api_key=gemini_api_key)
