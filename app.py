@@ -4,7 +4,7 @@ from google import genai
 from tavily import TavilyClient
 
 # Set page config
-st.set_page_config(page_title="Nova Search", page_icon="🔍")
+st.set_page_config(page_title="Orbit Ai", page_icon="🔍")
 
 # Dynamic, friendly greetings list
 greetings = [
