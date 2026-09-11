@@ -6,47 +6,59 @@ from tavily import TavilyClient
 # Browser tab title & icon
 st.set_page_config(page_title="Orbit AI", page_icon="🌐", layout="centered")
 
-# --- CUSTOM CSS: Colors, Typography & Animations ---
-st.markdown("""
+# --- CUSTOMER COLOR CUSTOMIZER (Sidebar) ---
+st.sidebar.markdown("### 🎨 Interface Customizer")
+primary_color = st.sidebar.color_picker("Pick Accent Color", "#58a6ff")
+bg_color = st.sidebar.color_picker("Pick Background Color", "#0d1117")
+card_bg = st.sidebar.color_picker("Pick Loader/Card Background", "#161b22")
+
+if st.sidebar.button("🧹 Clear Memory"):
+    st.session_state.chat_history = []
+    st.session_state.current_answer = ""
+    st.session_state.current_suggestions = ""
+    st.rerun()
+
+# --- DYNAMIC CSS INJECTION BASED ON USER SELECTION ---
+st.markdown(f"""
 <style>
-    /* Dark Slate Theme Background */
-    .stApp {
-        background-color: #0d1117;
+    /* User-Defined Background Theme */
+    .stApp {{
+        background-color: {bg_color} !important;
         color: #e6edf3;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
+    }}
     
-    /* Bold Title Styling with Gradient */
-    h1 {
-        background: linear-gradient(135deg, #7928CA 0%, #FF0080 100%);
+    /* Dynamic Heading Accent */
+    h1 {{
+        background: linear-gradient(135deg, {primary_color} 0%, #FF0080 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-weight: 800 !important;
         font-size: 3rem !important;
         letter-spacing: -1px;
-    }
+    }}
 
-    /* Subheadings Bolder */
-    h2, h3, .stMarkdown h3 {
-        color: #58a6ff !important;
+    /* Subheadings */
+    h2, h3, .stMarkdown h3 {{
+        color: {primary_color} !important;
         font-weight: 700 !important;
-    }
+    }}
 
-    /* Custom Form & Input Box styling */
-    div[data-baseweb="input"] {
+    /* Input Box styling */
+    div[data-baseweb="input"] {{
         border-radius: 12px !important;
         border: 2px solid #30363d !important;
-        background-color: #161b22 !important;
+        background-color: {card_bg} !important;
         transition: all 0.3s ease;
-    }
-    div[data-baseweb="input"]:focus-within {
-        border-color: #58a6ff !important;
-        box-shadow: 0 0 15px rgba(88, 166, 255, 0.3);
-    }
+    }}
+    div[data-baseweb="input"]:focus-within {{
+        border-color: {primary_color} !important;
+        box-shadow: 0 0 15px {primary_color}44;
+    }}
     
-    /* Styling Buttons with Hover Animations */
-    .stButton>button, .stFormSubmitButton>button {
-        background: linear-gradient(90deg, #1f6feb 0%, #238636 100%) !important;
+    /* Buttons */
+    .stButton>button, .stFormSubmitButton>button {{
+        background: linear-gradient(90deg, {primary_color} 0%, #238636 100%) !important;
         color: #ffffff !important;
         font-weight: 700 !important;
         border-radius: 10px !important;
@@ -54,36 +66,36 @@ st.markdown("""
         padding: 0.6rem 1.2rem !important;
         transition: transform 0.2s ease, box-shadow 0.2s ease !important;
         width: 100%;
-    }
-    .stButton>button:hover, .stFormSubmitButton>button:hover {
+    }}
+    .stButton>button:hover, .stFormSubmitButton>button:hover {{
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(31, 111, 235, 0.4) !important;
-    }
+        box-shadow: 0 6px 20px {primary_color}66 !important;
+    }}
 
-    /* Custom Glowing Pulse Animation for Searches */
-    @keyframes orbit-pulse {
-        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(88, 166, 255, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(88, 166, 255, 0); }
-        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(88, 166, 255, 0); }
-    }
-    .search-loader {
+    /* Glowing Pulse Animation */
+    @keyframes orbit-pulse {{
+        0% {{ transform: scale(0.95); box-shadow: 0 0 0 0 {primary_color}aa; }}
+        70% {{ transform: scale(1); box-shadow: 0 0 0 15px {primary_color}00; }}
+        100% {{ transform: scale(0.95); box-shadow: 0 0 0 0 {primary_color}00; }}
+    }}
+    .search-loader {{
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 20px;
         margin: 15px 0;
-        background: #161b22;
+        background: {card_bg};
         border-radius: 12px;
         border: 1px solid #30363d;
-    }
-    .pulse-circle {
+    }}
+    .pulse-circle {{
         width: 20px;
         height: 20px;
-        background-color: #58a6ff;
+        background-color: {primary_color};
         border-radius: 50%;
         margin-right: 15px;
         animation: orbit-pulse 1.5s infinite;
-    }
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -98,6 +110,12 @@ greetings = [
 if "selected_greeting" not in st.session_state:
     st.session_state.selected_greeting = random.choice(greetings)
 
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+if "search_query" not in st.session_state:
+    st.session_state.search_query = ""
+
 # Main Heading on Page
 st.title("🌐 Orbit AI")
 st.markdown(f"### {st.session_state.selected_greeting}")
@@ -110,9 +128,6 @@ tavily_api_key = st.secrets.get("TAVILY_API_KEY")
 st.write("💡 **Popular topics to search:**")
 col1, col2 = st.columns(2)
 
-if "search_query" not in st.session_state:
-    st.session_state.search_query = ""
-
 def set_query(text):
     st.session_state.search_query = text
 
@@ -123,7 +138,7 @@ with col2:
     if st.button("🎬 Trending movies & shows"):
         set_query("Trending movies & shows")
 
-# Search form
+# Search form (Single-turn view: older responses disappear when a new one is submitted)
 with st.form(key="search_form"):
     query = st.text_input(
         "Ask anything or search the web:", 
@@ -135,12 +150,11 @@ if submit_button and query:
     if not gemini_api_key or not tavily_api_key:
         st.error("API keys are missing from Streamlit Secrets!")
     else:
-        # Custom Animated Loading Indicator
         loading_placeholder = st.empty()
-        loading_placeholder.markdown("""
+        loading_placeholder.markdown(f"""
             <div class="search-loader">
                 <div class="pulse-circle"></div>
-                <span style="font-weight: 600; font-size: 1.1rem; color: #58a6ff;">Orbiting the web for answers...</span>
+                <span style="font-weight: 600; font-size: 1.1rem; color: {primary_color};">Orbiting the web for answers...</span>
             </div>
         """, unsafe_allow_html=True)
 
@@ -149,33 +163,43 @@ if submit_button and query:
             tavily = TavilyClient(api_key=tavily_api_key)
             search_result = tavily.search(query=query, search_depth="fast", max_results=3)
             
-            # 2. Gemini Setup with updated prompt name
+            # 2. Gemini Setup with memory context
             gemini_client = genai.Client(api_key=gemini_api_key)
+            
+            # Remember past requests in memory context
+            memory_context = "\n".join([f"User: {h['q']}\nAI: {h['a']}" for h in st.session_state.chat_history[-3:]])
             
             prompt = f"""
             You are Orbit AI, a friendly and intelligent AI search assistant created by Saahas.
             
             CRITICAL INSTRUCTION: If the user asks who created you, who made you, or who built this app, you MUST respond clearly that you were created and built by Saahas.
             
+            Previous conversation memory:
+            {memory_context}
+            
             Based on these web search results:
             {search_result}
             
-            Answer the user's question clearly, warmly, and concisely: {query}
+            Answer the user's current question clearly, warmly, and concisely: {query}
             """
             
-            # Clear loading animation before streaming text
             loading_placeholder.empty()
             
             st.subheader("Answer:")
             
             def stream_response():
                 response = gemini_client.models.generate_content_stream(
-                    model="gemini-3.6-flash",
+                    model="gemini-2.5-flash",
                     contents=prompt
                 )
+                full_response = ""
                 for chunk in response:
                     if chunk.text:
+                        full_response += chunk.text
                         yield chunk.text
+                
+                # Save to background memory so it remembers past requests
+                st.session_state.chat_history.append({"q": query, "a": full_response})
 
             st.write_stream(stream_response)
             
@@ -190,7 +214,7 @@ if submit_button and query:
             """
             
             suggestions = gemini_client.models.generate_content(
-                model="gemini-3.6-flash",
+                model="gemini-2.5-flash",
                 contents=suggestion_prompt
             )
             st.write(suggestions.text)
