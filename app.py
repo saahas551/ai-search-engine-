@@ -3,10 +3,10 @@ from google import genai
 from tavily import TavilyClient
 
 # Set page config
-st.set_page_config(page_title="My AI Search Engine", page_icon="🔍")
+st.set_page_config(page_title="Orbit Ai", page_icon="🔍")
 
 # Page title & Greeting
-st.title("🔍 My AI Search Engine")
+st.title("🔍 Orbit Ai")
 st.markdown("### Hey there! 👋 How can I help you today?")
 
 # Fetch API keys directly from Streamlit Secrets
